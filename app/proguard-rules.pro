@@ -1,2 +1,0 @@
--keep class com.remind.app.** { *; }
--dontwarn kotlinx.serialization.**
