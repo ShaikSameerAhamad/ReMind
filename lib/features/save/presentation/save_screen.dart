@@ -123,6 +123,12 @@ class _SaveScreenState extends ConsumerState<SaveScreen> {
       }
       switch (result) {
         case SaveLinkSuccess():
+          if (session.canUseCloud) {
+            await _tryDrainSyncQueue();
+            if (!mounted) {
+              return;
+            }
+          }
           ref.invalidate(savedItemsProvider);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(session.canUseCloud ? 'Saved and queued for sync.' : 'Saved locally.')),
@@ -137,5 +143,13 @@ class _SaveScreenState extends ConsumerState<SaveScreen> {
         setState(() => _isSaving = false);
       }
     }
+  }
+
+  Future<void> _tryDrainSyncQueue() async {
+    final engine = await ref.read(savedItemSyncEngineProvider.future);
+    if (engine == null) {
+      return;
+    }
+    await engine.drain();
   }
 }

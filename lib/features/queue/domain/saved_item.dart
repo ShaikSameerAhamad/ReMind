@@ -40,4 +40,44 @@ final class SavedItem {
   final DateTime? lastOpenedAt;
   final List<String> tags;
   final SyncStatus syncStatus;
+
+  SavedItem copyWith({
+    String? id,
+    String? ownerId,
+    String? title,
+    String? url,
+    ItemCategory? category,
+    String? sourceDomain,
+    String? thumbnailUrl,
+    int? readTimeMinutes,
+    DateTime? savedAt,
+    DateTime? updatedAt,
+    DateTime? reminderAt,
+    bool? isCompleted,
+    bool? isArchived,
+    double? readingProgress,
+    DateTime? lastOpenedAt,
+    List<String>? tags,
+    SyncStatus? syncStatus,
+  }) {
+    return SavedItem(
+      id: id ?? this.id,
+      ownerId: ownerId ?? this.ownerId,
+      title: title ?? this.title,
+      url: url ?? this.url,
+      category: category ?? this.category,
+      sourceDomain: sourceDomain ?? this.sourceDomain,
+      thumbnailUrl: thumbnailUrl ?? this.thumbnailUrl,
+      readTimeMinutes: readTimeMinutes ?? this.readTimeMinutes,
+      savedAt: savedAt ?? this.savedAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      reminderAt: reminderAt ?? this.reminderAt,
+      isCompleted: isCompleted ?? this.isCompleted,
+      isArchived: isArchived ?? this.isArchived,
+      readingProgress: readingProgress ?? this.readingProgress,
+      lastOpenedAt: lastOpenedAt ?? this.lastOpenedAt,
+      tags: tags ?? this.tags,
+      syncStatus: syncStatus ?? this.syncStatus,
+    );
+  }
 }
