@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../features/alarms/presentation/alarm_received_screen.dart';
 import '../../features/auth/presentation/auth_screen.dart';
 import '../../features/groups/presentation/group_detail_screen.dart';
+import '../../features/groups/presentation/group_invite_screen.dart';
 import '../../features/groups/presentation/groups_screen.dart';
 import '../../features/home/presentation/home_screen.dart';
 import '../../features/queue/presentation/queue_screen.dart';
@@ -36,6 +37,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.groupDetailPattern,
         builder: (context, state) => GroupDetailScreen(
           groupId: state.pathParameters['groupId']!,
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.groupInvitePattern,
+        builder: (context, state) => GroupInviteScreen(
+          groupId: state.pathParameters['groupId']!,
+          inviteCode: state.pathParameters['inviteCode']!,
         ),
       ),
       GoRoute(

@@ -24,6 +24,40 @@ final class Group {
   final DateTime? archivedAt;
 }
 
+final class GroupInvite {
+  const GroupInvite({
+    required this.groupId,
+    required this.code,
+    required this.deepLink,
+    required this.createdBy,
+    required this.createdAt,
+    required this.expiresAt,
+    this.recipientEmail,
+  });
+
+  final String groupId;
+  final String code;
+  final String deepLink;
+  final String createdBy;
+  final String? recipientEmail;
+  final DateTime createdAt;
+  final DateTime expiresAt;
+}
+
+final class GroupInviteAcceptance {
+  const GroupInviteAcceptance({
+    required this.groupId,
+    required this.inviteCode,
+    required this.member,
+    required this.acceptedAt,
+  });
+
+  final String groupId;
+  final String inviteCode;
+  final GroupMembership member;
+  final DateTime acceptedAt;
+}
+
 sealed class UserAccess {
   const UserAccess();
 

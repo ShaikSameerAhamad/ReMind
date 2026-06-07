@@ -6,6 +6,19 @@ final class UnavailableGroupRepository implements GroupRepository {
 
   @override
   Future<void> createGroup(Group group) {
-    throw StateError('Firebase is not configured yet. Add google-services.json before creating shared groups.');
+    throw StateError(
+        'Firebase is not configured yet. Add google-services.json before creating shared groups.');
+  }
+
+  @override
+  Future<void> createInvite(GroupInvite invite) {
+    throw StateError(
+        'Firebase is not configured yet. Add google-services.json before inviting group members.');
+  }
+
+  @override
+  Future<void> acceptInvite(GroupInviteAcceptance acceptance) {
+    throw StateError(
+        'Firebase is not configured yet. Add google-services.json before joining shared groups.');
   }
 }

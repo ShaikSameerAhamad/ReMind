@@ -46,6 +46,23 @@ void main() {
     expect(route, AppRoutes.groupDetail('family'));
   });
 
+  test('parses group invite deep links and typed invite payloads', () {
+    const parser = DeepLinkParser();
+
+    expect(
+      parser.routeFor({'deepLink': 'remind://groups/family/invites/INV123'}),
+      AppRoutes.groupInvite('family', 'INV123'),
+    );
+    expect(
+      parser.routeFor({
+        'type': 'group_invite',
+        'groupId': 'family',
+        'inviteCode': 'INV123',
+      }),
+      AppRoutes.groupInvite('family', 'INV123'),
+    );
+  });
+
   test('rejects external links and unsafe route segments', () {
     const parser = DeepLinkParser();
 

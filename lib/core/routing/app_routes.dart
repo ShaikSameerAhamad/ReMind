@@ -6,12 +6,20 @@ abstract final class AppRoutes {
   static const settings = '/settings';
   static const queuePattern = '/queues/:queueId';
   static const groupDetailPattern = '/groups/:groupId';
+  static const groupInvitePattern = '/groups/:groupId/invites/:inviteCode';
   static const taskDetailPattern = '/groups/:groupId/tasks/:taskId';
-  static const alarmReceivedPattern = '/groups/:groupId/alarms/:alarmId/received';
+  static const alarmReceivedPattern =
+      '/groups/:groupId/alarms/:alarmId/received';
 
-  static String queue(String queueId) => '/queues/${_segment(queueId, 'queueId')}';
+  static String queue(String queueId) =>
+      '/queues/${_segment(queueId, 'queueId')}';
 
-  static String groupDetail(String groupId) => '/groups/${_segment(groupId, 'groupId')}';
+  static String groupDetail(String groupId) =>
+      '/groups/${_segment(groupId, 'groupId')}';
+
+  static String groupInvite(String groupId, String inviteCode) {
+    return '/groups/${_segment(groupId, 'groupId')}/invites/${_segment(inviteCode, 'inviteCode')}';
+  }
 
   static String taskDetail(String groupId, String taskId) {
     return '/groups/${_segment(groupId, 'groupId')}/tasks/${_segment(taskId, 'taskId')}';

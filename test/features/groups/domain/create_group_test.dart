@@ -19,7 +19,8 @@ void main() {
       name: 'Family',
     );
 
-    expect(result, const CreateGroupFailure(Invalid('Sign in to create shared groups.')));
+    expect(result,
+        const CreateGroupFailure(Invalid('Sign in to create shared groups.')));
     expect(repository.created, isEmpty);
   });
 
@@ -36,7 +37,8 @@ void main() {
       name: '',
     );
 
-    expect(result, const CreateGroupFailure(Invalid('Group name is required.')));
+    expect(
+        result, const CreateGroupFailure(Invalid('Group name is required.')));
     expect(repository.created, isEmpty);
   });
 
@@ -83,4 +85,10 @@ final class _RecordingGroupRepository implements GroupRepository {
   Future<void> createGroup(Group group) async {
     created.add(group);
   }
+
+  @override
+  Future<void> createInvite(GroupInvite invite) async {}
+
+  @override
+  Future<void> acceptInvite(GroupInviteAcceptance acceptance) async {}
 }

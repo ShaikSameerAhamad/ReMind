@@ -11,7 +11,8 @@ import 'package:remind/features/groups/presentation/group_providers.dart';
 import '../../../support/recording_auth_repository.dart';
 
 void main() {
-  testWidgets('guest users see upgrade prompt instead of group creation', (tester) async {
+  testWidgets('guest users see upgrade prompt instead of group creation',
+      (tester) async {
     final authRepository = RecordingAuthRepository(
       initialSession: AuthSession.guest(deviceId: 'device-1'),
     );
@@ -19,7 +20,8 @@ void main() {
       ProviderScope(
         overrides: [
           authRepositoryProvider.overrideWithValue(authRepository),
-          groupRepositoryProvider.overrideWithValue(_RecordingGroupRepository()),
+          groupRepositoryProvider
+              .overrideWithValue(_RecordingGroupRepository()),
         ],
         child: const ReMindApp(),
       ),
@@ -32,7 +34,8 @@ void main() {
     expect(find.text('Create group'), findsNothing);
   });
 
-  testWidgets('signed-in users can create a group from groups screen', (tester) async {
+  testWidgets('signed-in users can create a group from groups screen',
+      (tester) async {
     final authRepository = RecordingAuthRepository(
       initialSession: AuthSession.signedIn(
         profile: const AuthProfile(
@@ -75,4 +78,10 @@ final class _RecordingGroupRepository implements GroupRepository {
   Future<void> createGroup(Group group) async {
     created.add(group);
   }
+
+  @override
+  Future<void> createInvite(GroupInvite invite) async {}
+
+  @override
+  Future<void> acceptInvite(GroupInviteAcceptance acceptance) async {}
 }
