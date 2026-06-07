@@ -7,6 +7,14 @@ build/
 coverage/
 .tooling/
 
+# Firebase Functions
+node_modules/
+functions/lib/
+functions/.runtimeconfig.json
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+
 # Android and IDE
 .gradle/
 .idea/

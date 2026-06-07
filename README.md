@@ -24,4 +24,20 @@ flutter run
 flutter build appbundle --release
 ```
 
+Firebase Functions live in `functions/` and target Node 20 on Firebase:
+
+```powershell
+cd functions
+npm install
+npm test
+npm run build
+firebase deploy --only functions
+```
+
+The scheduled shared-alarm processor expects these optional environment values:
+
+- `FUNCTIONS_REGION`, defaults to `asia-south1`
+- `ALARM_PROCESS_BATCH_SIZE`, defaults to `100`
+- `ALARM_NOTIFICATION_CHANNEL_ID`, defaults to `remind_general`
+
 Release signing is read from `android/key.properties`, which must stay local and must not be committed.
