@@ -1,0 +1,6 @@
+{
+  "projects": {
+    "default": "remind-e293e",
+    "prod": "remind-e293e"
+  }
+}
