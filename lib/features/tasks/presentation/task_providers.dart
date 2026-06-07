@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../auth/presentation/auth_controller.dart';
 import '../data/unavailable_task_repository.dart';
+import '../domain/add_task_comment.dart';
 import '../domain/complete_group_task.dart';
 import '../domain/create_group_task.dart';
 import '../domain/group_task.dart';
@@ -38,6 +39,14 @@ final completeGroupTaskProvider = Provider<CompleteGroupTask>((ref) {
   return CompleteGroupTask(
     repository: ref.watch(taskRepositoryProvider),
     now: DateTime.now,
+  );
+});
+
+final addTaskCommentProvider = Provider<AddTaskComment>((ref) {
+  return AddTaskComment(
+    repository: ref.watch(taskRepositoryProvider),
+    now: DateTime.now,
+    idGenerator: _newCommentId,
   );
 });
 
@@ -103,10 +112,47 @@ final class TaskCompletionController extends AsyncNotifier<String?> {
   }
 }
 
+final taskCommentControllerProvider =
+    AsyncNotifierProvider<TaskCommentController, TaskComment?>(
+        TaskCommentController.new);
+
+final class TaskCommentController extends AsyncNotifier<TaskComment?> {
+  @override
+  TaskComment? build() => null;
+
+  Future<AddTaskCommentResult> add({
+    required String groupId,
+    required String taskId,
+    required String text,
+  }) async {
+    state = const AsyncLoading();
+    final session = await ref.read(authControllerProvider.future);
+    final result = await ref.read(addTaskCommentProvider)(
+      session: session,
+      groupId: groupId,
+      taskId: taskId,
+      text: text,
+    );
+    state = switch (result) {
+      AddTaskCommentSuccess(:final comment) => AsyncData(comment),
+      AddTaskCommentFailure() => const AsyncData(null),
+    };
+    return result;
+  }
+}
+
 String _newTaskId() {
   final timestamp = DateTime.now().toUtc().microsecondsSinceEpoch;
   final random = Random.secure();
   final suffix =
       List.generate(6, (_) => random.nextInt(36).toRadixString(36)).join();
   return 'task-$timestamp-$suffix';
+}
+
+String _newCommentId() {
+  final timestamp = DateTime.now().toUtc().microsecondsSinceEpoch;
+  final random = Random.secure();
+  final suffix =
+      List.generate(5, (_) => random.nextInt(36).toRadixString(36)).join();
+  return 'comment-$timestamp-$suffix';
 }

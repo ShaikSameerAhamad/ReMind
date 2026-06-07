@@ -27,4 +27,10 @@ final class UnavailableTaskRepository implements TaskRepository {
     throw StateError(
         'Firebase is not configured yet. Add google-services.json before completing shared tasks.');
   }
+
+  @override
+  Future<void> addComment(TaskComment comment) {
+    throw StateError(
+        'Firebase is not configured yet. Add google-services.json before commenting on shared tasks.');
+  }
 }

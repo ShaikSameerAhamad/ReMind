@@ -11,4 +11,6 @@ abstract interface class TaskRepository {
   Future<void> createTask(GroupTask task);
 
   Future<void> completeTask(GroupTaskCompletion completion);
+
+  Future<void> addComment(TaskComment comment);
 }

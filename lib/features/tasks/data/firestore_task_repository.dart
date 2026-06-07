@@ -76,6 +76,29 @@ final class FirestoreTaskRepository implements TaskRepository {
     await batch.commit();
   }
 
+  @override
+  Future<void> addComment(TaskComment comment) async {
+    final batch = _firestore.batch();
+    batch.set(
+      _tasksRef(comment.groupId).doc(comment.taskId),
+      {
+        'comments': FieldValue.arrayUnion([_commentToFirestore(comment)]),
+        'updatedAt': Timestamp.fromDate(comment.createdAt),
+        'updatedBy': comment.authorId,
+      },
+      SetOptions(merge: true),
+    );
+    batch.set(
+      _firestore.collection('groups').doc(comment.groupId),
+      {
+        'updatedAt': FieldValue.serverTimestamp(),
+        'lastActivityAt': FieldValue.serverTimestamp(),
+      },
+      SetOptions(merge: true),
+    );
+    await batch.commit();
+  }
+
   CollectionReference<Map<String, dynamic>> _tasksRef(String groupId) {
     return _firestore.collection('groups').doc(groupId).collection('tasks');
   }
@@ -96,6 +119,8 @@ final class FirestoreTaskRepository implements TaskRepository {
           : Timestamp.fromDate(task.completedAt!),
       'completedBy': task.completedBy,
       'updatedBy': task.createdBy,
+      'comments':
+          task.comments.map(_commentToFirestore).toList(growable: false),
     };
   }
 
@@ -125,7 +150,53 @@ final class FirestoreTaskRepository implements TaskRepository {
       dueAt: _nullableDateFromFirestore(data['dueAt']),
       completedAt: _nullableDateFromFirestore(data['completedAt']),
       completedBy: data['completedBy'] as String?,
+      updatedBy: data['updatedBy'] as String?,
+      comments: _commentsFromFirestore(
+        groupId: groupId,
+        taskId: id,
+        value: data['comments'],
+      ),
     );
+  }
+
+  Map<String, Object?> _commentToFirestore(TaskComment comment) {
+    return {
+      'id': comment.id,
+      'uid': comment.authorId,
+      'displayName': comment.authorName,
+      'text': comment.text,
+      'timestamp': Timestamp.fromDate(comment.createdAt),
+    };
+  }
+
+  List<TaskComment> _commentsFromFirestore({
+    required String groupId,
+    required String taskId,
+    required Object? value,
+  }) {
+    if (value is! List) {
+      return const [];
+    }
+    final comments = <TaskComment>[];
+    for (final entry in value) {
+      if (entry is! Map) {
+        continue;
+      }
+      final data = entry.cast<String, Object?>();
+      comments.add(
+        TaskComment(
+          groupId: groupId,
+          taskId: taskId,
+          id: data['id'] as String? ?? '',
+          authorId: data['uid'] as String? ?? '',
+          authorName: data['displayName'] as String? ?? 'Member',
+          text: data['text'] as String? ?? '',
+          createdAt: _dateFromFirestore(data['timestamp']),
+        ),
+      );
+    }
+    comments.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+    return comments;
   }
 
   T _enumByName<T extends Enum>(List<T> values, Object? value, T fallback) {

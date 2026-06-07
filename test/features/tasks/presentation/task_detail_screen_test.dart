@@ -51,6 +51,51 @@ void main() {
     expect(taskRepository.completions.single.taskId, 'task-1');
     expect(find.text('Task completed.'), findsOneWidget);
   });
+
+  testWidgets('signed-in user adds comment from task detail screen',
+      (tester) async {
+    final authRepository = RecordingAuthRepository(
+      initialSession: AuthSession.signedIn(
+        profile: const AuthProfile(
+          uid: 'uid-1',
+          email: 'sameer@example.com',
+          displayName: 'Sameer',
+          avatarUrl: null,
+        ),
+      ),
+    );
+    final taskRepository = _RecordingTaskRepository();
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          authRepositoryProvider.overrideWithValue(authRepository),
+          groupRepositoryProvider
+              .overrideWithValue(_RecordingGroupRepository()),
+          taskRepositoryProvider.overrideWithValue(taskRepository),
+        ],
+        child: const MaterialApp(
+          home: TaskDetailScreen(groupId: 'family', taskId: 'task-1'),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+    expect(find.text('Can you handle this?'), findsOneWidget);
+    expect(find.text('This task was edited by Aisha.'), findsOneWidget);
+
+    await tester.scrollUntilVisible(find.text('Add a comment'), 300);
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Add a comment'),
+      'Picked this up',
+    );
+    await tester.tap(find.text('Send'));
+    await tester.pumpAndSettle();
+
+    expect(taskRepository.comments.single.text, 'Picked this up');
+    expect(find.text('Picked this up'), findsOneWidget);
+    expect(find.text('Sameer'), findsWidgets);
+  });
 }
 
 final class _RecordingGroupRepository implements GroupRepository {
@@ -68,6 +113,12 @@ final class _RecordingGroupRepository implements GroupRepository {
               userId: 'uid-1',
               displayName: 'Sameer',
               role: GroupRole.admin,
+              joinedAt: DateTime.utc(2026, 6, 7),
+            ),
+            GroupMembership(
+              userId: 'uid-2',
+              displayName: 'Aisha',
+              role: GroupRole.member,
               joinedAt: DateTime.utc(2026, 6, 7),
             ),
           ],
@@ -98,7 +149,20 @@ final class _RecordingTaskRepository implements TaskRepository {
     status: GroupTaskStatus.open,
     createdAt: DateTime.utc(2026, 6, 7),
     updatedAt: DateTime.utc(2026, 6, 7),
+    updatedBy: 'uid-2',
+    comments: [
+      TaskComment(
+        groupId: 'family',
+        taskId: 'task-1',
+        id: 'comment-0',
+        authorId: 'uid-2',
+        authorName: 'Aisha',
+        text: 'Can you handle this?',
+        createdAt: DateTime.utc(2026, 6, 7, 9),
+      ),
+    ],
   );
+  final comments = <TaskComment>[];
 
   @override
   Stream<List<GroupTask>> watchGroupTasks(String groupId) =>
@@ -130,6 +194,31 @@ final class _RecordingTaskRepository implements TaskRepository {
       updatedAt: completion.completedAt,
       completedAt: completion.completedAt,
       completedBy: completion.completedBy,
+      updatedBy: completion.completedBy,
+      comments: _task.comments,
+    );
+    _controller.add(_task);
+  }
+
+  @override
+  Future<void> addComment(TaskComment comment) async {
+    comments.add(comment);
+    _task = GroupTask(
+      id: _task.id,
+      groupId: _task.groupId,
+      title: _task.title,
+      notes: _task.notes,
+      createdBy: _task.createdBy,
+      assignedTo: _task.assignedTo,
+      priority: _task.priority,
+      status: _task.status,
+      createdAt: _task.createdAt,
+      updatedAt: comment.createdAt,
+      dueAt: _task.dueAt,
+      completedAt: _task.completedAt,
+      completedBy: _task.completedBy,
+      updatedBy: comment.authorId,
+      comments: [..._task.comments, comment],
     );
     _controller.add(_task);
   }

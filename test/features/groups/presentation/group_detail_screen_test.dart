@@ -168,6 +168,9 @@ final class _RecordingTaskRepository implements TaskRepository {
   @override
   Future<void> completeTask(GroupTaskCompletion completion) async {}
 
+  @override
+  Future<void> addComment(TaskComment comment) async {}
+
   GroupTask? _taskById(String taskId) {
     for (final task in _tasks) {
       if (task.id == taskId) {

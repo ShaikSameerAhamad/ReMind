@@ -118,4 +118,7 @@ final class _RecordingTaskRepository implements TaskRepository {
 
   @override
   Future<void> completeTask(GroupTaskCompletion completion) async {}
+
+  @override
+  Future<void> addComment(TaskComment comment) async {}
 }

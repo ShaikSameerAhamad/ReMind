@@ -17,6 +17,8 @@ final class GroupTask {
     this.dueAt,
     this.completedAt,
     this.completedBy,
+    this.updatedBy,
+    this.comments = const [],
   });
 
   final String id;
@@ -32,8 +34,30 @@ final class GroupTask {
   final DateTime? dueAt;
   final DateTime? completedAt;
   final String? completedBy;
+  final String? updatedBy;
+  final List<TaskComment> comments;
 
   bool get isCompleted => status == GroupTaskStatus.completed;
+}
+
+final class TaskComment {
+  const TaskComment({
+    required this.groupId,
+    required this.taskId,
+    required this.id,
+    required this.authorId,
+    required this.authorName,
+    required this.text,
+    required this.createdAt,
+  });
+
+  final String groupId;
+  final String taskId;
+  final String id;
+  final String authorId;
+  final String authorName;
+  final String text;
+  final DateTime createdAt;
 }
 
 final class GroupTaskCompletion {
