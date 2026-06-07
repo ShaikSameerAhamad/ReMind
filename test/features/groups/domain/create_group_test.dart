@@ -82,6 +82,9 @@ final class _RecordingGroupRepository implements GroupRepository {
   final created = <Group>[];
 
   @override
+  Stream<Group?> watchGroup(String groupId) => const Stream.empty();
+
+  @override
   Future<void> createGroup(Group group) async {
     created.add(group);
   }

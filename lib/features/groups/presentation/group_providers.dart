@@ -14,6 +14,10 @@ final groupRepositoryProvider = Provider<GroupRepository>((ref) {
   return const UnavailableGroupRepository();
 });
 
+final groupProvider = StreamProvider.family<Group?, String>((ref, groupId) {
+  return ref.watch(groupRepositoryProvider).watchGroup(groupId);
+});
+
 final createGroupProvider = Provider<CreateGroup>((ref) {
   return CreateGroup(
     repository: ref.watch(groupRepositoryProvider),

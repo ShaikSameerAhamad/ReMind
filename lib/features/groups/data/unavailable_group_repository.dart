@@ -5,6 +5,9 @@ final class UnavailableGroupRepository implements GroupRepository {
   const UnavailableGroupRepository();
 
   @override
+  Stream<Group?> watchGroup(String groupId) => const Stream.empty();
+
+  @override
   Future<void> createGroup(Group group) {
     throw StateError(
         'Firebase is not configured yet. Add google-services.json before creating shared groups.');

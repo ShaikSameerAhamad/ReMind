@@ -22,6 +22,16 @@ final class Group {
   final DateTime updatedAt;
   final DateTime lastActivityAt;
   final DateTime? archivedAt;
+
+  GroupMembership? memberNamed(String userId) {
+    final trimmed = userId.trim();
+    for (final member in members) {
+      if (member.userId == trimmed) {
+        return member;
+      }
+    }
+    return null;
+  }
 }
 
 final class GroupInvite {

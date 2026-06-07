@@ -10,6 +10,9 @@ import 'package:remind/features/groups/domain/group_repository.dart';
 import 'package:remind/features/groups/presentation/group_detail_screen.dart';
 import 'package:remind/features/groups/presentation/group_invite_screen.dart';
 import 'package:remind/features/groups/presentation/group_providers.dart';
+import 'package:remind/features/tasks/domain/group_task.dart';
+import 'package:remind/features/tasks/domain/task_repository.dart';
+import 'package:remind/features/tasks/presentation/task_providers.dart';
 
 import '../../../support/recording_auth_repository.dart';
 
@@ -33,6 +36,7 @@ void main() {
         overrides: [
           authRepositoryProvider.overrideWithValue(authRepository),
           groupRepositoryProvider.overrideWithValue(groupRepository),
+          taskRepositoryProvider.overrideWithValue(_EmptyTaskRepository()),
         ],
         child: MaterialApp.router(
           routerConfig: GoRouter(
@@ -63,7 +67,7 @@ void main() {
 
     expect(groupRepository.acceptances.single.groupId, 'family');
     expect(groupRepository.acceptances.single.inviteCode, 'INV123');
-    expect(find.text('Group activity'), findsOneWidget);
+    expect(find.text('Shared tasks'), findsOneWidget);
   });
 
   testWidgets('guest user is routed to sign in before accepting invite',
@@ -113,6 +117,19 @@ final class _RecordingGroupRepository implements GroupRepository {
   final acceptances = <GroupInviteAcceptance>[];
 
   @override
+  Stream<Group?> watchGroup(String groupId) => Stream.value(
+        Group(
+          id: groupId,
+          name: 'Family',
+          createdBy: 'uid-1',
+          createdAt: DateTime.utc(2026, 6, 7),
+          updatedAt: DateTime.utc(2026, 6, 7),
+          lastActivityAt: DateTime.utc(2026, 6, 7),
+          members: const [],
+        ),
+      );
+
+  @override
   Future<void> createGroup(Group group) async {}
 
   @override
@@ -122,4 +139,21 @@ final class _RecordingGroupRepository implements GroupRepository {
   Future<void> acceptInvite(GroupInviteAcceptance acceptance) async {
     acceptances.add(acceptance);
   }
+}
+
+final class _EmptyTaskRepository implements TaskRepository {
+  @override
+  Stream<List<GroupTask>> watchGroupTasks(String groupId) =>
+      Stream.value(const []);
+
+  @override
+  Stream<GroupTask?> watchTask(
+          {required String groupId, required String taskId}) =>
+      Stream.value(null);
+
+  @override
+  Future<void> createTask(GroupTask task) async {}
+
+  @override
+  Future<void> completeTask(GroupTaskCompletion completion) async {}
 }

@@ -11,6 +11,21 @@ final class FirestoreGroupRepository implements GroupRepository {
   final FirebaseFirestore _firestore;
 
   @override
+  Stream<Group?> watchGroup(String groupId) {
+    return _firestore
+        .collection('groups')
+        .doc(groupId)
+        .snapshots()
+        .map((snapshot) {
+      final data = snapshot.data();
+      if (!snapshot.exists || data == null) {
+        return null;
+      }
+      return _groupFromFirestore(snapshot.id, data);
+    });
+  }
+
+  @override
   Future<void> createGroup(Group group) async {
     final batch = _firestore.batch();
     final groupRef = _firestore.collection('groups').doc(group.id);
@@ -140,5 +155,68 @@ final class FirestoreGroupRepository implements GroupRepository {
       'displayName': member.displayName,
       'avatarUrl': member.avatarUrl,
     };
+  }
+
+  Group _groupFromFirestore(String id, Map<String, Object?> data) {
+    return Group(
+      id: id,
+      name: data['name'] as String? ?? 'Group',
+      createdBy: data['createdBy'] as String? ?? '',
+      members: _membersFromFirestore(data['members']),
+      createdAt: _dateFromFirestore(data['createdAt']),
+      updatedAt: _dateFromFirestore(data['updatedAt']),
+      lastActivityAt: _dateFromFirestore(data['lastActivityAt']),
+      archivedAt: _nullableDateFromFirestore(data['archivedAt']),
+    );
+  }
+
+  List<GroupMembership> _membersFromFirestore(Object? value) {
+    if (value is! Map) {
+      return const [];
+    }
+    final members = <GroupMembership>[];
+    for (final entry in value.entries) {
+      final data = entry.value;
+      if (entry.key is! String || data is! Map) {
+        continue;
+      }
+      final memberData = data.cast<String, Object?>();
+      members.add(
+        GroupMembership(
+          userId: entry.key as String,
+          displayName: memberData['displayName'] as String? ?? 'Member',
+          avatarUrl: memberData['avatarUrl'] as String?,
+          role: _roleFromFirestore(memberData['role']),
+          joinedAt: _dateFromFirestore(memberData['joinedAt']),
+        ),
+      );
+    }
+    members.sort((a, b) => a.displayName.compareTo(b.displayName));
+    return members;
+  }
+
+  DateTime _dateFromFirestore(Object? value) {
+    return _nullableDateFromFirestore(value) ??
+        DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
+  }
+
+  DateTime? _nullableDateFromFirestore(Object? value) {
+    return switch (value) {
+      final Timestamp timestamp => timestamp.toDate().toUtc(),
+      final DateTime date => date.toUtc(),
+      _ => null,
+    };
+  }
+
+  GroupRole _roleFromFirestore(Object? value) {
+    if (value is! String) {
+      return GroupRole.member;
+    }
+    for (final role in GroupRole.values) {
+      if (role.name == value) {
+        return role;
+      }
+    }
+    return GroupRole.member;
   }
 }

@@ -7,6 +7,9 @@ import 'package:remind/features/auth/presentation/auth_controller.dart';
 import 'package:remind/features/groups/domain/group_models.dart';
 import 'package:remind/features/groups/domain/group_repository.dart';
 import 'package:remind/features/groups/presentation/group_providers.dart';
+import 'package:remind/features/tasks/domain/group_task.dart';
+import 'package:remind/features/tasks/domain/task_repository.dart';
+import 'package:remind/features/tasks/presentation/task_providers.dart';
 
 import '../../../support/recording_auth_repository.dart';
 
@@ -22,6 +25,7 @@ void main() {
           authRepositoryProvider.overrideWithValue(authRepository),
           groupRepositoryProvider
               .overrideWithValue(_RecordingGroupRepository()),
+          taskRepositoryProvider.overrideWithValue(_EmptyTaskRepository()),
         ],
         child: const ReMindApp(),
       ),
@@ -52,6 +56,7 @@ void main() {
         overrides: [
           authRepositoryProvider.overrideWithValue(authRepository),
           groupRepositoryProvider.overrideWithValue(groupRepository),
+          taskRepositoryProvider.overrideWithValue(_EmptyTaskRepository()),
         ],
         child: const ReMindApp(),
       ),
@@ -75,6 +80,9 @@ final class _RecordingGroupRepository implements GroupRepository {
   final created = <Group>[];
 
   @override
+  Stream<Group?> watchGroup(String groupId) => const Stream.empty();
+
+  @override
   Future<void> createGroup(Group group) async {
     created.add(group);
   }
@@ -84,4 +92,21 @@ final class _RecordingGroupRepository implements GroupRepository {
 
   @override
   Future<void> acceptInvite(GroupInviteAcceptance acceptance) async {}
+}
+
+final class _EmptyTaskRepository implements TaskRepository {
+  @override
+  Stream<List<GroupTask>> watchGroupTasks(String groupId) =>
+      Stream.value(const []);
+
+  @override
+  Stream<GroupTask?> watchTask(
+          {required String groupId, required String taskId}) =>
+      Stream.value(null);
+
+  @override
+  Future<void> createTask(GroupTask task) async {}
+
+  @override
+  Future<void> completeTask(GroupTaskCompletion completion) async {}
 }
