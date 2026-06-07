@@ -1,5 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:remind/core/notifications/fcm_token_registrar.dart';
+import 'package:remind/core/notifications/notification_providers.dart';
+import 'package:remind/core/notifications/push_messaging_client.dart';
+import 'package:remind/core/notifications/push_token_store.dart';
 import 'package:remind/features/auth/domain/auth_repository.dart';
 import 'package:remind/features/auth/domain/auth_session.dart';
 import 'package:remind/features/auth/presentation/auth_controller.dart';
@@ -57,6 +61,21 @@ void main() {
     expect(repository.actions, ['signInWithGoogle']);
   });
 
+  test('auth controller registers FCM token after Google sign in', () async {
+    final repository = _RecordingAuthRepository();
+    final messaging = _RecordingPushMessagingClient(token: 'fcm-token');
+    final tokenStore = _RecordingPushTokenStore();
+    final registrar = FcmTokenRegistrar(messagingClient: messaging, tokenStore: tokenStore);
+    final container = _containerFor(repository, registrar: registrar);
+    addTearDown(container.dispose);
+
+    await container.read(authControllerProvider.future);
+    await container.read(authControllerProvider.notifier).signInWithGoogle();
+
+    expect(tokenStore.registered.single.uid, 'uid-123');
+    expect(tokenStore.registered.single.token, 'fcm-token');
+  });
+
   test('auth controller signs out', () async {
     final repository = _RecordingAuthRepository(
       initialSession: AuthSession.guest(deviceId: 'device-abc'),
@@ -71,12 +90,38 @@ void main() {
     expect(session.kind, AuthSessionKind.signedOut);
     expect(repository.actions, ['signOut']);
   });
+
+  test('auth controller unregisters FCM token before sign out', () async {
+    final repository = _RecordingAuthRepository(
+      initialSession: AuthSession.signedIn(
+        profile: const AuthProfile(
+          uid: 'uid-789',
+          email: 'signed@example.com',
+          displayName: 'Signed',
+          avatarUrl: null,
+        ),
+      ),
+    );
+    final messaging = _RecordingPushMessagingClient(token: 'fcm-token');
+    final tokenStore = _RecordingPushTokenStore();
+    final registrar = FcmTokenRegistrar(messagingClient: messaging, tokenStore: tokenStore);
+    final container = _containerFor(repository, registrar: registrar);
+    addTearDown(container.dispose);
+
+    await container.read(authControllerProvider.future);
+    await container.read(authControllerProvider.notifier).signOut();
+
+    expect(tokenStore.unregistered.single.uid, 'uid-789');
+    expect(tokenStore.unregistered.single.token, 'fcm-token');
+    expect(messaging.deleteTokenCalls, 1);
+  });
 }
 
-ProviderContainer _containerFor(AuthRepository repository) {
+ProviderContainer _containerFor(AuthRepository repository, {FcmTokenRegistrar? registrar}) {
   return ProviderContainer(
     overrides: [
       authRepositoryProvider.overrideWithValue(repository),
+      fcmTokenRegistrarProvider.overrideWith((ref) async => registrar),
     ],
   );
 }
@@ -122,5 +167,41 @@ final class _RecordingAuthRepository implements AuthRepository {
     actions.add('signOut');
     _session = const AuthSession.signedOut();
     return _session;
+  }
+}
+
+final class _RecordingPushMessagingClient implements PushMessagingClient {
+  _RecordingPushMessagingClient({required this.token});
+
+  final String? token;
+  var deleteTokenCalls = 0;
+
+  @override
+  Stream<String> get tokenRefreshes => const Stream.empty();
+
+  @override
+  Future<void> deleteToken() async {
+    deleteTokenCalls += 1;
+  }
+
+  @override
+  Future<String?> getToken() async => token;
+
+  @override
+  Future<void> requestPermission() async {}
+}
+
+final class _RecordingPushTokenStore implements PushTokenStore {
+  final registered = <PushTokenRecord>[];
+  final unregistered = <PushTokenRecord>[];
+
+  @override
+  Future<void> registerToken(PushTokenRecord record) async {
+    registered.add(record);
+  }
+
+  @override
+  Future<void> unregisterToken(PushTokenRecord record) async {
+    unregistered.add(record);
   }
 }
