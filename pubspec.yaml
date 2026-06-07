@@ -20,6 +20,7 @@ dependencies:
   firebase_storage: ^13.0.5
   cloud_functions: ^6.0.5
   hive_ce: ^2.19.3
+  path_provider: ^2.1.5
   shared_preferences: ^2.5.3
   flutter_secure_storage: ^10.0.0
   workmanager: ^0.9.0+3
