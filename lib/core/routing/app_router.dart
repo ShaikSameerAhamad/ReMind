@@ -3,11 +3,13 @@ import 'package:go_router/go_router.dart';
 
 import '../../features/alarms/presentation/alarm_received_screen.dart';
 import '../../features/auth/presentation/auth_screen.dart';
+import '../../features/groups/presentation/group_detail_screen.dart';
 import '../../features/groups/presentation/groups_screen.dart';
 import '../../features/home/presentation/home_screen.dart';
 import '../../features/queue/presentation/queue_screen.dart';
 import '../../features/save/presentation/save_screen.dart';
 import '../../features/settings/presentation/settings_screen.dart';
+import '../../features/tasks/presentation/task_detail_screen.dart';
 import 'app_routes.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
@@ -29,6 +31,19 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.groups,
         builder: (context, state) => const GroupsScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.groupDetailPattern,
+        builder: (context, state) => GroupDetailScreen(
+          groupId: state.pathParameters['groupId']!,
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.taskDetailPattern,
+        builder: (context, state) => TaskDetailScreen(
+          groupId: state.pathParameters['groupId']!,
+          taskId: state.pathParameters['taskId']!,
+        ),
       ),
       GoRoute(
         path: AppRoutes.settings,

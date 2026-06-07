@@ -3,9 +3,13 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../firebase/firebase_bootstrap.dart';
+import '../routing/deep_link_parser.dart';
 import 'fcm_token_registrar.dart';
+import 'firebase_notification_open_client.dart';
 import 'firebase_push_messaging_client.dart';
 import 'firestore_push_token_store.dart';
+import 'notification_open_client.dart';
+import 'notification_router.dart';
 import 'push_messaging_client.dart';
 import 'push_token_store.dart';
 
@@ -32,4 +36,28 @@ final fcmTokenRegistrarProvider = FutureProvider<FcmTokenRegistrar?>((ref) async
     return null;
   }
   return FcmTokenRegistrar(messagingClient: messagingClient, tokenStore: tokenStore);
+});
+
+final notificationOpenClientProvider = FutureProvider<NotificationOpenClient?>((ref) async {
+  final firebase = await FirebaseBootstrap.ensureInitialized();
+  if (!firebase.isConfigured) {
+    return null;
+  }
+  return FirebaseNotificationOpenClient(messaging: FirebaseMessaging.instance);
+});
+
+final deepLinkParserProvider = Provider<DeepLinkParser>((ref) {
+  return const DeepLinkParser();
+});
+
+final notificationRouterProvider = FutureProvider.family<NotificationRouter?, void Function(String route)>((ref, navigate) async {
+  final openClient = await ref.watch(notificationOpenClientProvider.future);
+  if (openClient == null) {
+    return null;
+  }
+  return NotificationRouter(
+    openClient: openClient,
+    parser: ref.watch(deepLinkParserProvider),
+    navigate: navigate,
+  );
 });
