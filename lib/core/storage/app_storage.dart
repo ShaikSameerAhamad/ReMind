@@ -17,4 +17,9 @@ abstract final class AppStorage {
     await ensureInitialized();
     return Hive.openBox<Map>('saved_items');
   }
+
+  static Future<Box<Map>> openSyncOperationsBox() async {
+    await ensureInitialized();
+    return Hive.openBox<Map>('sync_operations');
+  }
 }

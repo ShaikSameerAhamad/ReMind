@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/storage/app_storage.dart';
+import '../../../core/sync/hive_sync_operation_queue.dart';
+import '../../../core/sync/sync_operation_queue.dart';
 import '../../queue/domain/saved_item.dart';
 import '../data/hive_saved_item_repository.dart';
 import '../domain/save_link.dart';
@@ -13,9 +15,15 @@ final savedItemRepositoryProvider = FutureProvider<SavedItemRepository>((ref) as
   return HiveSavedItemRepository(box: box);
 });
 
+final syncOperationQueueProvider = FutureProvider<SyncOperationQueue>((ref) async {
+  final box = await AppStorage.openSyncOperationsBox();
+  return HiveSyncOperationQueue(box: box);
+});
+
 final saveLinkProvider = FutureProvider<SaveLink>((ref) async {
   final repository = await ref.watch(savedItemRepositoryProvider.future);
-  return SaveLink(repository: repository, now: DateTime.now);
+  final syncQueue = await ref.watch(syncOperationQueueProvider.future);
+  return SaveLink(repository: repository, syncQueue: syncQueue, now: DateTime.now);
 });
 
 final savedItemsProvider = StreamProvider<List<SavedItem>>((ref) async* {

@@ -1,4 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:remind/core/sync/sync_operation.dart';
+import 'package:remind/core/sync/sync_operation_queue.dart';
 import 'package:remind/core/utils/validation.dart';
 import 'package:remind/features/queue/domain/saved_item.dart';
 import 'package:remind/features/save/domain/save_link.dart';
@@ -37,6 +39,32 @@ void main() {
     expect(repository.savedItems.single.category, ItemCategory.article);
     expect(repository.savedItems.single.syncStatus, SyncStatus.synced);
   });
+
+  test('saveLink can enqueue a signed-in saved item for cloud sync', () async {
+    final repository = _RecordingRepository();
+    final syncQueue = _RecordingSyncQueue();
+    final useCase = SaveLink(
+      repository: repository,
+      syncQueue: syncQueue,
+      now: () => DateTime.utc(2026, 6, 7, 10),
+    );
+
+    final result = await useCase(
+      ownerId: 'user-123',
+      url: 'https://remind.app/docs/offline-first',
+      title: 'Offline-first architecture',
+      shouldSyncToCloud: true,
+    );
+
+    expect(result, isA<SaveLinkSuccess>());
+    expect(repository.savedItems.single.syncStatus, SyncStatus.pending);
+    expect(syncQueue.enqueued.single.type, SyncOperationType.savedItemUpsert);
+    expect(syncQueue.enqueued.single.ownerId, 'user-123');
+    expect(syncQueue.enqueued.single.entityId, repository.savedItems.single.id);
+    expect(syncQueue.enqueued.single.status, SyncOperationStatus.pending);
+    expect(syncQueue.enqueued.single.payload['title'], 'Offline-first architecture');
+    expect(syncQueue.enqueued.single.payload['syncStatus'], SyncStatus.pending.name);
+  });
 }
 
 final class _RecordingRepository implements SavedItemRepository {
@@ -51,4 +79,22 @@ final class _RecordingRepository implements SavedItemRepository {
   Stream<List<SavedItem>> watchItems({required String ownerId}) {
     return Stream.value(savedItems.where((item) => item.ownerId == ownerId).toList());
   }
+}
+
+final class _RecordingSyncQueue implements SyncOperationQueue {
+  final enqueued = <SyncOperation>[];
+
+  @override
+  Future<void> enqueue(SyncOperation operation) async {
+    enqueued.add(operation);
+  }
+
+  @override
+  Future<void> markFailed({required String id, required String error}) async {}
+
+  @override
+  Future<void> markSynced({required String id}) async {}
+
+  @override
+  Future<List<SyncOperation>> pendingOperations() async => enqueued;
 }

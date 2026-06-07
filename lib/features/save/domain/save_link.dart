@@ -1,7 +1,10 @@
 import 'dart:math';
 
+import '../../../core/sync/sync_operation.dart';
+import '../../../core/sync/sync_operation_queue.dart';
 import '../../../core/utils/validation.dart';
 import '../../queue/domain/saved_item.dart';
+import 'saved_item_codec.dart';
 import 'saved_item_repository.dart';
 
 sealed class SaveLinkResult {
@@ -32,12 +35,15 @@ final class SaveLink {
   SaveLink({
     required SavedItemRepository repository,
     required DateTime Function() now,
+    SyncOperationQueue? syncQueue,
     Random? random,
   })  : _repository = repository,
+        _syncQueue = syncQueue,
         _now = now,
         _random = random ?? Random.secure();
 
   final SavedItemRepository _repository;
+  final SyncOperationQueue? _syncQueue;
   final DateTime Function() _now;
   final Random _random;
 
@@ -45,6 +51,7 @@ final class SaveLink {
     required String ownerId,
     required String url,
     required String title,
+    bool shouldSyncToCloud = false,
   }) async {
     final validation = ReMindValidators.secureUrl(url);
     if (validation is Invalid) {
@@ -62,9 +69,27 @@ final class SaveLink {
       sourceDomain: uri.host,
       savedAt: timestamp,
       updatedAt: timestamp,
-      syncStatus: SyncStatus.synced,
+      syncStatus: shouldSyncToCloud ? SyncStatus.pending : SyncStatus.synced,
     );
     await _repository.save(item);
+    if (shouldSyncToCloud) {
+      final syncQueue = _syncQueue;
+      if (syncQueue == null) {
+        throw StateError('Cloud sync was requested without a sync operation queue.');
+      }
+      await syncQueue.enqueue(
+        SyncOperation(
+          id: 'sync-${item.id}-${timestamp.microsecondsSinceEpoch}',
+          entityId: item.id,
+          ownerId: ownerId,
+          type: SyncOperationType.savedItemUpsert,
+          status: SyncOperationStatus.pending,
+          payload: SavedItemCodec.toJson(item),
+          createdAt: timestamp,
+          updatedAt: timestamp,
+        ),
+      );
+    }
     return SaveLinkSuccess(item);
   }
 
