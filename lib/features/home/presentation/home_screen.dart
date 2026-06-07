@@ -92,7 +92,7 @@ class HomeScreen extends StatelessWidget {
                   maxCrossAxisExtent: 240,
                   mainAxisSpacing: 12,
                   crossAxisSpacing: 12,
-                  childAspectRatio: 1.05,
+                  childAspectRatio: 0.88,
                 ),
                 itemCount: _homeTiles.length,
                 itemBuilder: (context, index) {
@@ -135,13 +135,17 @@ class _HomeTileCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Icon(_iconFor(tile.kind), color: theme.colorScheme.primary),
-              const Spacer(),
+              const SizedBox(height: 14),
               Text(tile.title, style: theme.textTheme.titleLarge),
               const SizedBox(height: 8),
-              Text(
-                tile.body,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.70),
+              Expanded(
+                child: Text(
+                  tile.body,
+                  maxLines: 4,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.70),
+                  ),
                 ),
               ),
             ],
