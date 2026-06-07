@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'app.dart';
 import 'core/storage/app_storage.dart';
+import 'features/alarms/data/alarm_repository_factory.dart';
+import 'features/alarms/presentation/alarm_providers.dart';
 import 'features/auth/data/auth_repository_factory.dart';
 import 'features/auth/presentation/auth_controller.dart';
 import 'features/groups/data/group_repository_factory.dart';
@@ -16,9 +18,11 @@ Future<void> main() async {
   final authRepository = await createDefaultAuthRepository();
   final groupRepository = await createDefaultGroupRepository();
   final taskRepository = await createDefaultTaskRepository();
+  final alarmRepository = await createDefaultAlarmRepository();
   runApp(
     ProviderScope(
       overrides: [
+        alarmRepositoryProvider.overrideWithValue(alarmRepository),
         authRepositoryProvider.overrideWithValue(authRepository),
         groupRepositoryProvider.overrideWithValue(groupRepository),
         taskRepositoryProvider.overrideWithValue(taskRepository),

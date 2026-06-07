@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:remind/app.dart';
+import 'package:remind/features/alarms/domain/alarm_repository.dart';
+import 'package:remind/features/alarms/domain/shared_alarm.dart';
+import 'package:remind/features/alarms/presentation/alarm_providers.dart';
 import 'package:remind/features/auth/domain/auth_session.dart';
 import 'package:remind/features/auth/presentation/auth_controller.dart';
 import 'package:remind/features/groups/domain/group_models.dart';
@@ -23,6 +26,7 @@ void main() {
       ProviderScope(
         overrides: [
           authRepositoryProvider.overrideWithValue(authRepository),
+          alarmRepositoryProvider.overrideWithValue(_EmptyAlarmRepository()),
           groupRepositoryProvider
               .overrideWithValue(_RecordingGroupRepository()),
           taskRepositoryProvider.overrideWithValue(_EmptyTaskRepository()),
@@ -55,6 +59,7 @@ void main() {
       ProviderScope(
         overrides: [
           authRepositoryProvider.overrideWithValue(authRepository),
+          alarmRepositoryProvider.overrideWithValue(_EmptyAlarmRepository()),
           groupRepositoryProvider.overrideWithValue(groupRepository),
           taskRepositoryProvider.overrideWithValue(_EmptyTaskRepository()),
         ],
@@ -112,4 +117,13 @@ final class _EmptyTaskRepository implements TaskRepository {
 
   @override
   Future<void> addComment(TaskComment comment) async {}
+}
+
+final class _EmptyAlarmRepository implements AlarmRepository {
+  @override
+  Stream<List<SharedAlarm>> watchGroupAlarms(String groupId) =>
+      Stream.value(const []);
+
+  @override
+  Future<void> createAlarm(SharedAlarm alarm) async {}
 }

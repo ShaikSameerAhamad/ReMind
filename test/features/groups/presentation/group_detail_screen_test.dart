@@ -3,6 +3,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:remind/features/alarms/domain/alarm_repository.dart';
+import 'package:remind/features/alarms/domain/shared_alarm.dart';
+import 'package:remind/features/alarms/presentation/alarm_providers.dart';
 import 'package:remind/features/auth/domain/auth_session.dart';
 import 'package:remind/features/auth/presentation/auth_controller.dart';
 import 'package:remind/features/groups/domain/group_models.dart';
@@ -30,10 +33,12 @@ void main() {
     );
     final groupRepository = _RecordingGroupRepository();
     final taskRepository = _RecordingTaskRepository();
+    final alarmRepository = _RecordingAlarmRepository();
 
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          alarmRepositoryProvider.overrideWithValue(alarmRepository),
           authRepositoryProvider.overrideWithValue(authRepository),
           groupRepositoryProvider.overrideWithValue(groupRepository),
           taskRepositoryProvider.overrideWithValue(taskRepository),
@@ -68,10 +73,12 @@ void main() {
     );
     final groupRepository = _RecordingGroupRepository();
     final taskRepository = _RecordingTaskRepository();
+    final alarmRepository = _RecordingAlarmRepository();
 
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          alarmRepositoryProvider.overrideWithValue(alarmRepository),
           authRepositoryProvider.overrideWithValue(authRepository),
           groupRepositoryProvider.overrideWithValue(groupRepository),
           taskRepositoryProvider.overrideWithValue(taskRepository),
@@ -98,6 +105,52 @@ void main() {
     expect(taskRepository.createdTasks.single.assignedTo, 'uid-2');
     expect(find.text('Buy milk'), findsOneWidget);
     expect(find.text('Aisha'), findsOneWidget);
+  });
+
+  testWidgets('signed-in user creates shared alarm for group member',
+      (tester) async {
+    final authRepository = RecordingAuthRepository(
+      initialSession: AuthSession.signedIn(
+        profile: const AuthProfile(
+          uid: 'uid-1',
+          email: 'sameer@example.com',
+          displayName: 'Sameer',
+          avatarUrl: null,
+        ),
+      ),
+    );
+    final groupRepository = _RecordingGroupRepository();
+    final taskRepository = _RecordingTaskRepository();
+    final alarmRepository = _RecordingAlarmRepository();
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          alarmRepositoryProvider.overrideWithValue(alarmRepository),
+          authRepositoryProvider.overrideWithValue(authRepository),
+          groupRepositoryProvider.overrideWithValue(groupRepository),
+          taskRepositoryProvider.overrideWithValue(taskRepository),
+        ],
+        child: const MaterialApp(home: GroupDetailScreen(groupId: 'family')),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Create alarm'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+        find.widgetWithText(TextFormField, 'Title'), 'Medicine');
+    await tester.enterText(
+        find.widgetWithText(TextFormField, 'Message'), 'Take after food');
+    await tester.tap(find.text('Aisha'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Create alarm').last);
+    await tester.pumpAndSettle();
+
+    expect(alarmRepository.createdAlarms.single.title, 'Medicine');
+    expect(alarmRepository.createdAlarms.single.recipients, ['uid-2']);
+    expect(find.text('Medicine'), findsOneWidget);
+    expect(find.text('Once'), findsOneWidget);
   });
 }
 
@@ -139,6 +192,25 @@ final class _RecordingGroupRepository implements GroupRepository {
 
   @override
   Future<void> acceptInvite(GroupInviteAcceptance acceptance) async {}
+}
+
+final class _RecordingAlarmRepository implements AlarmRepository {
+  final createdAlarms = <SharedAlarm>[];
+  final _alarms = <SharedAlarm>[];
+  final _controller = StreamController<List<SharedAlarm>>.broadcast();
+
+  @override
+  Stream<List<SharedAlarm>> watchGroupAlarms(String groupId) async* {
+    yield _alarms;
+    yield* _controller.stream;
+  }
+
+  @override
+  Future<void> createAlarm(SharedAlarm alarm) async {
+    createdAlarms.add(alarm);
+    _alarms.add(alarm);
+    _controller.add(List.unmodifiable(_alarms));
+  }
 }
 
 final class _RecordingTaskRepository implements TaskRepository {
