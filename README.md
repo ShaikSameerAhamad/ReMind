@@ -34,6 +34,13 @@ npm run build
 firebase deploy --only functions
 ```
 
+Firestore rules and indexes are deployed from the repo root:
+
+```powershell
+firebase emulators:exec --only firestore "npm.cmd --prefix functions run test:rules"
+firebase deploy --only firestore --project remind-e293e
+```
+
 The scheduled shared-alarm processor expects these optional environment values:
 
 - `FUNCTIONS_REGION`, defaults to `asia-south1`

@@ -1,0 +1,186 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isSelf(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function groupPath(groupId) {
+      return /databases/$(database)/documents/groups/$(groupId);
+    }
+
+    function groupDoc(groupId) {
+      return get(groupPath(groupId));
+    }
+
+    function isGroupMember(groupId) {
+      return signedIn()
+        && request.auth.uid in groupDoc(groupId).data.members;
+    }
+
+    function isGroupAdmin(groupId) {
+      return isGroupMember(groupId)
+        && groupDoc(groupId).data.members[request.auth.uid].role == 'admin';
+    }
+
+    function isExistingGroupMember() {
+      return signedIn() && request.auth.uid in resource.data.members;
+    }
+
+    function isExistingGroupAdmin() {
+      return isExistingGroupMember()
+        && resource.data.members[request.auth.uid].role == 'admin';
+    }
+
+    function groupChangedKeys() {
+      return request.resource.data.diff(resource.data).affectedKeys();
+    }
+
+    function updatesOnlyGroupActivity() {
+      return isExistingGroupMember()
+        && groupChangedKeys().hasOnly(['updatedAt', 'lastActivityAt']);
+    }
+
+    function createsInvite() {
+      return isExistingGroupMember()
+        && groupChangedKeys().hasOnly(['inviteCodes', 'updatedAt']);
+    }
+
+    function acceptsInvite() {
+      return signedIn()
+        && !isExistingGroupMember()
+        && resource.data.inviteCodes is map
+        && resource.data.inviteCodes.keys().size() > 0
+        && groupChangedKeys().hasOnly([
+          'members',
+          'inviteCodes',
+          'updatedAt',
+          'lastActivityAt',
+        ])
+        && request.resource.data.members.diff(resource.data.members)
+          .addedKeys().hasOnly([request.auth.uid])
+        && request.resource.data.members[request.auth.uid].role == 'member';
+    }
+
+    function ownsCreatedGroup() {
+      return signedIn()
+        && request.resource.data.createdBy == request.auth.uid
+        && request.auth.uid in request.resource.data.members
+        && request.resource.data.members[request.auth.uid].role == 'admin';
+    }
+
+    function isValidUserTokenUpdate(uid) {
+      return isSelf(uid)
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['fcmTokens', 'updatedAt']);
+    }
+
+    function isValidTaskCreate(groupId) {
+      return isGroupMember(groupId)
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.title is string
+        && request.resource.data.title.size() > 0
+        && request.resource.data.title.size() <= 160;
+    }
+
+    function isValidTaskUpdate(groupId) {
+      return isGroupMember(groupId)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'title',
+          'notes',
+          'assignedTo',
+          'priority',
+          'status',
+          'dueAt',
+          'completedAt',
+          'completedBy',
+          'comments',
+          'updatedAt',
+          'updatedBy',
+        ]);
+    }
+
+    function isValidAlarmCreate(groupId) {
+      return isGroupMember(groupId)
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.title is string
+        && request.resource.data.title.size() > 0
+        && request.resource.data.title.size() <= 120
+        && request.resource.data.recipients is list
+        && request.resource.data.recipients.size() > 0
+        && request.resource.data.scheduledAt > request.time;
+    }
+
+    function onlyUpdatesOwnAlarmDismissal() {
+      return signedIn()
+        && resource.data.dismissals is map
+        && request.resource.data.dismissals is map
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['dismissals', 'updatedAt'])
+        && request.resource.data.dismissals.diff(resource.data.dismissals)
+          .affectedKeys().hasOnly([request.auth.uid])
+        && request.resource.data.dismissals[request.auth.uid] is timestamp;
+    }
+
+    match /users/{uid} {
+      allow read, create, delete: if isSelf(uid);
+      allow update: if isSelf(uid) || isValidUserTokenUpdate(uid);
+
+      match /items/{itemId} {
+        allow read, create, update, delete: if isSelf(uid);
+      }
+    }
+
+    match /groups/{groupId} {
+      allow get: if isExistingGroupMember() || signedIn();
+      allow list: if false;
+      allow create: if ownsCreatedGroup();
+      allow update: if isExistingGroupAdmin()
+        || updatesOnlyGroupActivity()
+        || createsInvite()
+        || acceptsInvite();
+      allow delete: if isExistingGroupAdmin();
+
+      match /tasks/{taskId} {
+        allow read: if isGroupMember(groupId);
+        allow create: if isValidTaskCreate(groupId);
+        allow update: if isValidTaskUpdate(groupId);
+        allow delete: if isGroupAdmin(groupId)
+          || resource.data.createdBy == request.auth.uid;
+      }
+
+      match /alarms/{alarmId} {
+        allow read: if isGroupMember(groupId);
+        allow create: if isValidAlarmCreate(groupId);
+        allow update: if onlyUpdatesOwnAlarmDismissal();
+        allow delete: if isGroupAdmin(groupId)
+          || resource.data.createdBy == request.auth.uid;
+      }
+
+      match /activity/{eventId} {
+        allow read: if isGroupMember(groupId);
+        allow create, update, delete: if false;
+      }
+    }
+
+    match /sharedSpaces/{sharedSpaceId} {
+      allow read: if signedIn()
+        && request.auth.uid in resource.data.members;
+      allow create: if signedIn()
+        && request.auth.uid == request.resource.data.ownerUid;
+      allow update: if signedIn()
+        && request.auth.uid in resource.data.members;
+      allow delete: if signedIn()
+        && request.auth.uid == resource.data.ownerUid;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
