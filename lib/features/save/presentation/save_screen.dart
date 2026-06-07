@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/routing/app_routes.dart';
 import '../../../core/utils/validation.dart';
+import '../../auth/domain/auth_session.dart';
+import '../../auth/presentation/auth_controller.dart';
 import '../domain/save_link.dart';
 import 'save_providers.dart';
 
@@ -97,11 +99,24 @@ class _SaveScreenState extends ConsumerState<SaveScreen> {
     }
     setState(() => _isSaving = true);
     try {
+      final session = await ref.read(authControllerProvider.future);
+      final ownerId = session.ownerId;
+      if (ownerId == null) {
+        if (!mounted) {
+          return;
+        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Sign in or continue as guest before saving.')),
+        );
+        context.go(AppRoutes.auth);
+        return;
+      }
       final saveLink = await ref.read(saveLinkProvider.future);
       final result = await saveLink(
-        ownerId: guestOwnerId,
+        ownerId: ownerId,
         url: _urlController.text,
         title: _titleController.text,
+        shouldSyncToCloud: session.kind == AuthSessionKind.signedIn,
       );
       if (!mounted) {
         return;
@@ -110,7 +125,7 @@ class _SaveScreenState extends ConsumerState<SaveScreen> {
         case SaveLinkSuccess():
           ref.invalidate(savedItemsProvider);
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Saved locally.')),
+            SnackBar(content: Text(session.canUseCloud ? 'Saved and queued for sync.' : 'Saved locally.')),
           );
           context.go(AppRoutes.queue('recently-saved'));
         case SaveLinkFailure(:final reason):
