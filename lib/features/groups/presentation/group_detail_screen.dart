@@ -25,6 +25,7 @@ class GroupDetailScreen extends ConsumerWidget {
     final groupState = ref.watch(groupProvider(groupId));
     final tasksState = ref.watch(groupTasksProvider(groupId));
     final alarmsState = ref.watch(groupAlarmsProvider(groupId));
+    ref.watch(localAlarmFallbackSyncProvider(groupId));
     final group = groupState.value;
     return Scaffold(
       appBar: AppBar(title: Text(group?.name ?? 'Group')),

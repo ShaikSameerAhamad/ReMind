@@ -7,6 +7,7 @@ import '../data/unavailable_alarm_repository.dart';
 import '../domain/alarm_repository.dart';
 import '../domain/create_shared_alarm.dart';
 import '../domain/dismiss_shared_alarm.dart';
+import '../domain/local_alarm_fallback.dart';
 import '../domain/shared_alarm.dart';
 
 final alarmRepositoryProvider = Provider<AlarmRepository>((ref) {
@@ -39,6 +40,29 @@ final dismissSharedAlarmProvider = Provider<DismissSharedAlarm>((ref) {
     repository: ref.watch(alarmRepositoryProvider),
     now: DateTime.now,
   );
+});
+
+final localAlarmFallbackSchedulerProvider =
+    Provider<LocalAlarmFallbackScheduler>((ref) {
+  return const NoopLocalAlarmFallbackScheduler();
+});
+
+final localAlarmFallbackSyncProvider =
+    Provider.family<void, String>((ref, groupId) {
+  final sessionState = ref.watch(authControllerProvider);
+  final alarmsState = ref.watch(groupAlarmsProvider(groupId));
+  final session = sessionState.value;
+  final alarms = alarmsState.value;
+  final userId = session?.profile?.uid;
+  if (userId == null || alarms == null) {
+    return;
+  }
+  Future.microtask(() {
+    ref.read(localAlarmFallbackSchedulerProvider).syncForUser(
+          alarms: alarms,
+          userId: userId,
+        );
+  });
 });
 
 final alarmCreationControllerProvider =
@@ -78,6 +102,15 @@ final class AlarmCreationController extends AsyncNotifier<SharedAlarm?> {
       CreateSharedAlarmSuccess(:final alarm) => AsyncData(alarm),
       CreateSharedAlarmFailure() => const AsyncData(null),
     };
+    if (result case CreateSharedAlarmSuccess(:final alarm)) {
+      final userId = session.profile?.uid;
+      if (userId != null) {
+        await ref.read(localAlarmFallbackSchedulerProvider).scheduleForUser(
+              alarm: alarm,
+              userId: userId,
+            );
+      }
+    }
     return result;
   }
 }
