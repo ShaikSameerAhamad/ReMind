@@ -2,6 +2,28 @@ enum GroupRole { admin, member }
 
 enum SubscriptionPlan { free, pro, family }
 
+final class Group {
+  const Group({
+    required this.id,
+    required this.name,
+    required this.createdBy,
+    required this.members,
+    required this.createdAt,
+    required this.updatedAt,
+    required this.lastActivityAt,
+    this.archivedAt,
+  });
+
+  final String id;
+  final String name;
+  final String createdBy;
+  final List<GroupMembership> members;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final DateTime lastActivityAt;
+  final DateTime? archivedAt;
+}
+
 sealed class UserAccess {
   const UserAccess();
 
