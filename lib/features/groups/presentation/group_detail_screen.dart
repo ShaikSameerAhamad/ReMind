@@ -166,6 +166,11 @@ class _AlarmCard extends StatelessWidget {
                 if (recipientNames.isNotEmpty)
                   _TaskChip(
                       label: recipientNames, icon: Icons.groups_2_outlined),
+                _TaskChip(
+                  label:
+                      '${alarm.dismissals.length}/${alarm.recipients.length} dismissed',
+                  icon: Icons.check_circle_outline_rounded,
+                ),
               ],
             ),
           ],

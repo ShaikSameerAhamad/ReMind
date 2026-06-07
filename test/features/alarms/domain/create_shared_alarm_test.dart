@@ -177,7 +177,17 @@ final class _RecordingAlarmRepository implements AlarmRepository {
       const Stream.empty();
 
   @override
+  Stream<SharedAlarm?> watchAlarm({
+    required String groupId,
+    required String alarmId,
+  }) =>
+      const Stream.empty();
+
+  @override
   Future<void> createAlarm(SharedAlarm alarm) async {
     createdAlarms.add(alarm);
   }
+
+  @override
+  Future<void> dismissAlarm(AlarmDismissal dismissal) async {}
 }

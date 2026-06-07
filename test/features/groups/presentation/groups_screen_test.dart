@@ -125,5 +125,15 @@ final class _EmptyAlarmRepository implements AlarmRepository {
       Stream.value(const []);
 
   @override
+  Stream<SharedAlarm?> watchAlarm({
+    required String groupId,
+    required String alarmId,
+  }) =>
+      Stream.value(null);
+
+  @override
   Future<void> createAlarm(SharedAlarm alarm) async {}
+
+  @override
+  Future<void> dismissAlarm(AlarmDismissal dismissal) async {}
 }

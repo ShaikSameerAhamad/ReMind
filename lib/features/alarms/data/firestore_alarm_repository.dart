@@ -21,6 +21,20 @@ final class FirestoreAlarmRepository implements AlarmRepository {
   }
 
   @override
+  Stream<SharedAlarm?> watchAlarm({
+    required String groupId,
+    required String alarmId,
+  }) {
+    return _alarmsRef(groupId).doc(alarmId).snapshots().map((snapshot) {
+      final data = snapshot.data();
+      if (!snapshot.exists || data == null) {
+        return null;
+      }
+      return _alarmFromSnapshot(snapshot);
+    });
+  }
+
+  @override
   Future<void> createAlarm(SharedAlarm alarm) async {
     final batch = _firestore.batch();
     batch.set(_alarmsRef(alarm.groupId).doc(alarm.id), _alarmToFirestore(alarm),
@@ -34,6 +48,19 @@ final class FirestoreAlarmRepository implements AlarmRepository {
       SetOptions(merge: true),
     );
     await batch.commit();
+  }
+
+  @override
+  Future<void> dismissAlarm(AlarmDismissal dismissal) async {
+    await _alarmsRef(dismissal.groupId).doc(dismissal.alarmId).set(
+      {
+        'dismissals': {
+          dismissal.dismissedBy: Timestamp.fromDate(dismissal.dismissedAt),
+        },
+        'updatedAt': Timestamp.fromDate(dismissal.dismissedAt),
+      },
+      SetOptions(merge: true),
+    );
   }
 
   CollectionReference<Map<String, dynamic>> _alarmsRef(String groupId) {
@@ -51,19 +78,27 @@ final class FirestoreAlarmRepository implements AlarmRepository {
       'repeatDays': alarm.repeatDays,
       'recipients': alarm.recipients,
       'status': alarm.status.name,
-      'dismissals': const <String, Object?>{},
       'deliveryLog': const <Object?>[],
       'createdAt': Timestamp.fromDate(alarm.createdAt),
       'updatedAt': Timestamp.fromDate(alarm.updatedAt),
       'lastTriggeredAt': alarm.lastTriggeredAt == null
           ? null
           : Timestamp.fromDate(alarm.lastTriggeredAt!),
+      'dismissals': alarm.dismissals.map(
+        (userId, dismissedAt) =>
+            MapEntry(userId, Timestamp.fromDate(dismissedAt)),
+      ),
     };
   }
 
   SharedAlarm _alarmFromFirestore(
       QueryDocumentSnapshot<Map<String, dynamic>> snapshot) {
-    final data = snapshot.data();
+    return _alarmFromSnapshot(snapshot);
+  }
+
+  SharedAlarm _alarmFromSnapshot(
+      DocumentSnapshot<Map<String, dynamic>> snapshot) {
+    final data = snapshot.data() ?? const <String, Object?>{};
     return SharedAlarm(
       id: snapshot.id,
       groupId: snapshot.reference.parent.parent?.id ?? '',
@@ -80,6 +115,7 @@ final class FirestoreAlarmRepository implements AlarmRepository {
       createdAt: _dateFromFirestore(data['createdAt']),
       updatedAt: _dateFromFirestore(data['updatedAt']),
       lastTriggeredAt: _nullableDateFromFirestore(data['lastTriggeredAt']),
+      dismissals: _dismissalsFromFirestore(data['dismissals']),
     );
   }
 
@@ -110,6 +146,19 @@ final class FirestoreAlarmRepository implements AlarmRepository {
         .whereType<num>()
         .map((value) => value.toInt())
         .toList(growable: false);
+  }
+
+  Map<String, DateTime> _dismissalsFromFirestore(Object? value) {
+    if (value is! Map) {
+      return const {};
+    }
+    final dismissals = <String, DateTime>{};
+    for (final entry in value.entries) {
+      if (entry.key is String) {
+        dismissals[entry.key as String] = _dateFromFirestore(entry.value);
+      }
+    }
+    return dismissals;
   }
 
   DateTime _dateFromFirestore(Object? value) {

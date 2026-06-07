@@ -206,10 +206,30 @@ final class _RecordingAlarmRepository implements AlarmRepository {
   }
 
   @override
+  Stream<SharedAlarm?> watchAlarm({
+    required String groupId,
+    required String alarmId,
+  }) {
+    return Stream.value(_alarmById(alarmId));
+  }
+
+  @override
   Future<void> createAlarm(SharedAlarm alarm) async {
     createdAlarms.add(alarm);
     _alarms.add(alarm);
     _controller.add(List.unmodifiable(_alarms));
+  }
+
+  @override
+  Future<void> dismissAlarm(AlarmDismissal dismissal) async {}
+
+  SharedAlarm? _alarmById(String alarmId) {
+    for (final alarm in _alarms) {
+      if (alarm.id == alarmId) {
+        return alarm;
+      }
+    }
+    return null;
   }
 }
 

@@ -18,6 +18,7 @@ final class SharedAlarm {
     required this.updatedAt,
     this.message,
     this.lastTriggeredAt,
+    this.dismissals = const {},
   });
 
   final String id;
@@ -34,4 +35,21 @@ final class SharedAlarm {
   final DateTime createdAt;
   final DateTime updatedAt;
   final DateTime? lastTriggeredAt;
+  final Map<String, DateTime> dismissals;
+
+  bool isDismissedBy(String userId) => dismissals.containsKey(userId);
+}
+
+final class AlarmDismissal {
+  const AlarmDismissal({
+    required this.groupId,
+    required this.alarmId,
+    required this.dismissedBy,
+    required this.dismissedAt,
+  });
+
+  final String groupId;
+  final String alarmId;
+  final String dismissedBy;
+  final DateTime dismissedAt;
 }

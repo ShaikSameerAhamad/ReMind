@@ -6,6 +6,7 @@ import '../../auth/presentation/auth_controller.dart';
 import '../data/unavailable_alarm_repository.dart';
 import '../domain/alarm_repository.dart';
 import '../domain/create_shared_alarm.dart';
+import '../domain/dismiss_shared_alarm.dart';
 import '../domain/shared_alarm.dart';
 
 final alarmRepositoryProvider = Provider<AlarmRepository>((ref) {
@@ -17,11 +18,26 @@ final groupAlarmsProvider =
   return ref.watch(alarmRepositoryProvider).watchGroupAlarms(groupId);
 });
 
+final sharedAlarmProvider =
+    StreamProvider.family<SharedAlarm?, ({String groupId, String alarmId})>(
+        (ref, args) {
+  return ref
+      .watch(alarmRepositoryProvider)
+      .watchAlarm(groupId: args.groupId, alarmId: args.alarmId);
+});
+
 final createSharedAlarmProvider = Provider<CreateSharedAlarm>((ref) {
   return CreateSharedAlarm(
     repository: ref.watch(alarmRepositoryProvider),
     now: DateTime.now,
     idGenerator: _newAlarmId,
+  );
+});
+
+final dismissSharedAlarmProvider = Provider<DismissSharedAlarm>((ref) {
+  return DismissSharedAlarm(
+    repository: ref.watch(alarmRepositoryProvider),
+    now: DateTime.now,
   );
 });
 
@@ -61,6 +77,33 @@ final class AlarmCreationController extends AsyncNotifier<SharedAlarm?> {
     state = switch (result) {
       CreateSharedAlarmSuccess(:final alarm) => AsyncData(alarm),
       CreateSharedAlarmFailure() => const AsyncData(null),
+    };
+    return result;
+  }
+}
+
+final alarmDismissalControllerProvider =
+    AsyncNotifierProvider<AlarmDismissalController, String?>(
+        AlarmDismissalController.new);
+
+final class AlarmDismissalController extends AsyncNotifier<String?> {
+  @override
+  String? build() => null;
+
+  Future<DismissSharedAlarmResult> dismiss({
+    required String groupId,
+    required String alarmId,
+  }) async {
+    state = const AsyncLoading();
+    final session = await ref.read(authControllerProvider.future);
+    final result = await ref.read(dismissSharedAlarmProvider)(
+      session: session,
+      groupId: groupId,
+      alarmId: alarmId,
+    );
+    state = switch (result) {
+      DismissSharedAlarmSuccess(:final alarmId) => AsyncData(alarmId),
+      DismissSharedAlarmFailure() => const AsyncData(null),
     };
     return result;
   }
